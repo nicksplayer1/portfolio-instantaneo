@@ -5,8 +5,8 @@ import { LogoutButton } from "@/components/auth/logout-button";
 export default async function HomePage() {
   const supabase = await createClient();
   const {
-    data: { claims },
-  } = await supabase.auth.getClaims();
+    data: { user },
+  } = await supabase.auth.getUser();
 
   return (
     <main className="min-h-screen bg-white text-zinc-900">
@@ -17,9 +17,9 @@ export default async function HomePage() {
           Gere um currículo online bonito, profissional e fácil de compartilhar.
         </p>
 
-        {claims?.sub ? (
+        {user ? (
           <>
-            <p className="mt-4 text-sm text-zinc-600">Conectado como {claims.email}</p>
+            <p className="mt-4 text-sm text-zinc-600">Conectado como {user.email}</p>
 
             <div className="mt-8 flex flex-wrap justify-center gap-3">
               <Link

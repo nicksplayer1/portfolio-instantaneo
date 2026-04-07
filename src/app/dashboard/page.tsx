@@ -6,10 +6,10 @@ import { createClient } from "@/lib/supabase/server";
 export default async function DashboardPage() {
   const supabase = await createClient();
   const {
-    data: { claims },
-  } = await supabase.auth.getClaims();
+    data: { user },
+  } = await supabase.auth.getUser();
 
-  if (!claims?.sub) {
+  if (!user) {
     redirect("/login?message=Faça login para acessar o dashboard.");
   }
 
@@ -34,7 +34,7 @@ export default async function DashboardPage() {
         </div>
 
         <div className="mt-6 rounded-xl border border-zinc-200 bg-zinc-50 p-4 text-sm text-zinc-700">
-          Usuário autenticado: {claims.email}
+          Usuário autenticado: {user.email}
         </div>
       </div>
     </main>

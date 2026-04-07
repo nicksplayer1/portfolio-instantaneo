@@ -11,10 +11,10 @@ export default async function SignupPage({ searchParams }: Props) {
   const params = await searchParams;
   const supabase = await createClient();
   const {
-    data: { claims },
-  } = await supabase.auth.getClaims();
+    data: { user },
+  } = await supabase.auth.getUser();
 
-  if (claims?.sub) {
+  if (user) {
     redirect("/dashboard");
   }
 
