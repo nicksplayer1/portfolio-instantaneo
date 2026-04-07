@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { slugifyResumeName } from "@/lib/resume-utils";
 
-async function generateUniqueSlug(name: string) {
+async function generateUniqueSlug(name: string, currentResumeId: string) {
   const supabase = await createClient();
   const baseSlug = slugifyResumeName(name) || "curriculo";
   let slug = baseSlug;
@@ -15,6 +15,7 @@ async function generateUniqueSlug(name: string) {
       .from("resumes")
       .select("id")
       .eq("slug", slug)
+      .neq("id", currentResumeId)
       .maybeSingle();
 
     if (!data) return slug;
@@ -24,13 +25,18 @@ async function generateUniqueSlug(name: string) {
   }
 }
 
-export async function createResume(formData: FormData) {
+export async function updateResume(formData: FormData) {
+  const id = String(formData.get("id") ?? "");
   const supabase = await createClient();
 
   const { data: authData, error: authError } = await supabase.auth.getUser();
 
   if (authError || !authData.user) {
     redirect("/login");
+  }
+
+  if (!id) {
+    redirect("/dashboard?error=Currículo inválido.");
   }
 
   const name = String(formData.get("name") ?? "").trim();
@@ -46,30 +52,34 @@ export async function createResume(formData: FormData) {
   const skills = String(formData.get("skills") ?? "").trim();
 
   if (!name) {
-    redirect("/create?error=O nome completo é obrigatório.");
+    redirect(`/edit/${id}?error=O nome completo é obrigatório.`);
   }
 
-  const slug = await generateUniqueSlug(name);
+  const slug = await generateUniqueSlug(name, id);
 
-  const { error } = await supabase.from("resumes").insert({
-    user_id: authData.user.id,
-    slug,
-    name,
-    role,
-    summary,
-    phone,
-    email,
-    city,
-    linkedin,
-    portfolio,
-    experience,
-    education,
-    skills,
-    is_public: true,
-  });
+  const { error } = await supabase
+    .from("resumes")
+    .update({
+      slug,
+      name,
+      role,
+      summary,
+      phone,
+      email,
+      city,
+      linkedin,
+      portfolio,
+      experience,
+      education,
+      skills,
+      is_public: true,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", id)
+    .eq("user_id", authData.user.id);
 
   if (error) {
-    redirect(`/create?error=${encodeURIComponent(error.message)}`);
+    redirect(`/edit/${id}?error=${encodeURIComponent(error.message)}`);
   }
 
   redirect(`/cv/${slug}`);

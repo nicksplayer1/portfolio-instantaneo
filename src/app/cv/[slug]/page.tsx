@@ -1,154 +1,144 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { ensureUrl, splitLines } from "@/lib/resume-utils";
 
-type PageProps = {
+type Props = {
   params: Promise<{ slug: string }>;
 };
 
-type Resume = {
-  name: string;
-  role: string | null;
-  summary: string | null;
-  phone: string | null;
-  email: string | null;
-  city: string | null;
-  linkedin: string | null;
-  portfolio: string | null;
-  experience: string | null;
-  education: string | null;
-  skills: string | null;
-};
-
-function lines(text: string | null) {
-  if (!text) return [];
-  return text
-    .split("\n")
-    .map((item) => item.trim())
-    .filter(Boolean);
+function Section({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="mt-10">
+      <h2 className="text-2xl font-bold text-zinc-900">{title}</h2>
+      <div className="mt-4">{children}</div>
+    </section>
+  );
 }
 
-function externalHref(value: string | null) {
-  if (!value) return null;
-  if (value.startsWith("http://") || value.startsWith("https://")) return value;
-  return `https://${value}`;
-}
-
-export default async function ResumePublicPage({ params }: PageProps) {
+export default async function ResumePublicPage({ params }: Props) {
   const { slug } = await params;
   const supabase = await createClient();
 
-  const { data, error } = await supabase
+  const { data: resume, error } = await supabase
     .from("resumes")
-    .select("name, role, summary, phone, email, city, linkedin, portfolio, experience, education, skills")
+    .select("*")
     .eq("slug", slug)
     .eq("is_public", true)
-    .single<Resume>();
+    .maybeSingle();
 
-  if (error || !data) {
+  if (error || !resume) {
     notFound();
   }
 
-  const experienceLines = lines(data.experience);
-  const educationLines = lines(data.education);
-  const skillLines = lines(data.skills);
-  const linkedinHref = externalHref(data.linkedin);
-  const portfolioHref = externalHref(data.portfolio);
+  const experienceItems = splitLines(resume.experience);
+  const educationItems = splitLines(resume.education);
+  const skillsItems = splitLines(resume.skills);
 
   return (
-    <main className="min-h-screen bg-zinc-100 px-4 py-8 sm:px-6 sm:py-10">
-      <div className="mx-auto max-w-4xl rounded-3xl bg-white shadow-sm">
-        <div className="border-b border-zinc-200 px-6 py-8 sm:px-10">
+    <main className="min-h-screen bg-zinc-50 px-6 py-10">
+      <div className="mx-auto max-w-5xl overflow-hidden rounded-[2rem] border border-zinc-200 bg-white shadow-sm">
+        <div className="px-6 py-8 sm:px-10 sm:py-10">
           <div className="flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
             <div>
-              <p className="text-sm font-medium uppercase tracking-[0.2em] text-zinc-500">
+              <p className="text-sm uppercase tracking-[0.3em] text-zinc-500">
                 Currículo online
               </p>
-              <h1 className="mt-3 text-3xl font-bold tracking-tight text-zinc-900 sm:text-4xl">
-                {data.name}
+              <h1 className="mt-4 text-3xl font-bold leading-tight text-zinc-950 sm:text-5xl">
+                {resume.name}
               </h1>
-              {data.role ? <p className="mt-3 text-lg text-zinc-600">{data.role}</p> : null}
+              {resume.role ? (
+                <p className="mt-4 text-xl text-zinc-700">{resume.role}</p>
+              ) : null}
             </div>
 
             <Link
               href="/dashboard"
-              className="inline-flex h-11 items-center justify-center rounded-xl border border-zinc-300 px-4 text-sm font-medium text-zinc-900 hover:bg-zinc-50"
+              className="rounded-xl border border-zinc-300 px-5 py-3 text-sm font-medium text-zinc-900 hover:bg-zinc-50"
             >
               Ir ao dashboard
             </Link>
           </div>
 
-          <div className="mt-6 grid gap-3 text-sm text-zinc-700 sm:grid-cols-2">
-            {data.email ? <p><span className="font-medium text-zinc-900">Email:</span> {data.email}</p> : null}
-            {data.phone ? <p><span className="font-medium text-zinc-900">Telefone:</span> {data.phone}</p> : null}
-            {data.city ? <p><span className="font-medium text-zinc-900">Cidade:</span> {data.city}</p> : null}
-            {linkedinHref ? (
+          <div className="mt-8 grid gap-4 text-zinc-700 sm:grid-cols-2">
+            {resume.email ? <p><span className="font-medium text-zinc-900">Email:</span> {resume.email}</p> : null}
+            {resume.phone ? <p><span className="font-medium text-zinc-900">Telefone:</span> {resume.phone}</p> : null}
+            {resume.city ? <p><span className="font-medium text-zinc-900">Cidade:</span> {resume.city}</p> : null}
+            {resume.linkedin ? (
               <p>
                 <span className="font-medium text-zinc-900">LinkedIn:</span>{" "}
-                <a className="underline" href={linkedinHref} target="_blank" rel="noreferrer">
-                  {data.linkedin}
+                <a href={ensureUrl(resume.linkedin)} target="_blank" className="underline">
+                  {resume.linkedin}
                 </a>
               </p>
             ) : null}
-            {portfolioHref ? (
+            {resume.portfolio ? (
               <p className="sm:col-span-2">
                 <span className="font-medium text-zinc-900">Portfólio:</span>{" "}
-                <a className="underline" href={portfolioHref} target="_blank" rel="noreferrer">
-                  {data.portfolio}
+                <a href={ensureUrl(resume.portfolio)} target="_blank" className="underline">
+                  {resume.portfolio}
                 </a>
               </p>
             ) : null}
           </div>
         </div>
 
-        <div className="space-y-8 px-6 py-8 sm:px-10">
-          {data.summary ? (
-            <section>
-              <h2 className="text-xl font-semibold text-zinc-900">Resumo</h2>
-              <p className="mt-3 whitespace-pre-line text-zinc-700">{data.summary}</p>
-            </section>
+        <div className="border-t border-zinc-200 px-6 py-8 sm:px-10 sm:py-10">
+          {resume.summary ? (
+            <Section title="Resumo">
+              <p className="whitespace-pre-wrap text-zinc-700">{resume.summary}</p>
+            </Section>
           ) : null}
 
-          {experienceLines.length > 0 ? (
-            <section>
-              <h2 className="text-xl font-semibold text-zinc-900">Experiência</h2>
-              <ul className="mt-3 space-y-2 text-zinc-700">
-                {experienceLines.map((item, index) => (
-                  <li key={`${item}-${index}`} className="rounded-2xl bg-zinc-50 px-4 py-3">
+          {experienceItems.length > 0 ? (
+            <Section title="Experiência">
+              <div className="space-y-3">
+                {experienceItems.map((item) => (
+                  <div
+                    key={item}
+                    className="rounded-2xl bg-zinc-50 px-4 py-4 text-zinc-800"
+                  >
                     {item}
-                  </li>
+                  </div>
                 ))}
-              </ul>
-            </section>
+              </div>
+            </Section>
           ) : null}
 
-          {educationLines.length > 0 ? (
-            <section>
-              <h2 className="text-xl font-semibold text-zinc-900">Formação</h2>
-              <ul className="mt-3 space-y-2 text-zinc-700">
-                {educationLines.map((item, index) => (
-                  <li key={`${item}-${index}`} className="rounded-2xl bg-zinc-50 px-4 py-3">
+          {educationItems.length > 0 ? (
+            <Section title="Formação">
+              <div className="space-y-3">
+                {educationItems.map((item) => (
+                  <div
+                    key={item}
+                    className="rounded-2xl bg-zinc-50 px-4 py-4 text-zinc-800"
+                  >
                     {item}
-                  </li>
+                  </div>
                 ))}
-              </ul>
-            </section>
+              </div>
+            </Section>
           ) : null}
 
-          {skillLines.length > 0 ? (
-            <section>
-              <h2 className="text-xl font-semibold text-zinc-900">Habilidades</h2>
-              <div className="mt-3 flex flex-wrap gap-2">
-                {skillLines.map((item, index) => (
+          {skillsItems.length > 0 ? (
+            <Section title="Habilidades">
+              <div className="flex flex-wrap gap-3">
+                {skillsItems.map((item) => (
                   <span
-                    key={`${item}-${index}`}
-                    className="rounded-full bg-zinc-900 px-3 py-2 text-sm text-white"
+                    key={item}
+                    className="rounded-full bg-zinc-900 px-4 py-2 text-sm font-medium text-white"
                   >
                     {item}
                   </span>
                 ))}
               </div>
-            </section>
+            </Section>
           ) : null}
         </div>
       </div>
