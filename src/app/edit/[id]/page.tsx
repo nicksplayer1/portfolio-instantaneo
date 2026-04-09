@@ -1,289 +1,255 @@
-import type { ReactNode } from "react";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import PhotoUploadField from "@/components/portfolio/photo-upload-field";
-import { updatePortfolioAction } from "./actions";
-
-type Props = {
-  params: Promise<{ id: string }>;
-  searchParams?: Promise<{ error?: string }>;
-};
-
-function FieldLabel({ children }: { children: ReactNode }) {
-  return <label className="mb-2 block text-sm font-medium text-zinc-900">{children}</label>;
-}
+import { updateInvite } from "./actions";
 
 function inputClassName() {
-  return "w-full rounded-2xl border border-zinc-300 bg-white px-4 py-3 text-zinc-950 outline-none transition placeholder:text-zinc-400 focus:border-zinc-500";
+  return "mt-2 w-full rounded-2xl border border-zinc-300 bg-white px-4 py-3 text-zinc-900 outline-none placeholder:text-zinc-400 focus:border-zinc-900";
 }
 
 function textareaClassName() {
-  return "min-h-[140px] w-full rounded-2xl border border-zinc-300 bg-white px-4 py-3 text-zinc-950 outline-none transition placeholder:text-zinc-400 focus:border-zinc-500";
+  return "mt-2 min-h-[120px] w-full rounded-2xl border border-zinc-300 bg-white px-4 py-3 text-zinc-900 outline-none placeholder:text-zinc-400 focus:border-zinc-900";
 }
 
-export default async function EditPortfolioPage({ params, searchParams }: Props) {
-  const supabase = await createClient();
-  const { data: authData, error: authError } = await supabase.auth.getUser();
+export default async function EditInvitePage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams?: Promise<{ error?: string }>;
+}) {
+  const { id } = await params;
+  const paramsSearch = await searchParams;
+  const error = paramsSearch?.error;
 
-  if (authError || !authData.user) {
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
     redirect("/login");
   }
 
-  const { id } = await params;
-  const { data: portfolio } = await supabase
-    .from("portfolios")
+  const { data: invite } = await supabase
+    .from("invites")
     .select("*")
     .eq("id", id)
-    .eq("user_id", authData.user.id)
+    .eq("user_id", user.id)
     .maybeSingle();
 
-  if (!portfolio) {
+  if (!invite) {
     notFound();
   }
 
-  const query = await searchParams;
-  const error = query?.error;
+  const updateInviteWithId = updateInvite.bind(null, invite.id);
 
   return (
-    <main className="min-h-screen bg-zinc-50 px-4 py-8 sm:px-6 sm:py-10">
-      <div className="mx-auto max-w-6xl space-y-6">
-        <section className="rounded-[28px] border border-zinc-200 bg-white p-6 shadow-sm sm:p-8">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+    <main className="min-h-screen bg-[#f6f3ee] px-6 py-10">
+      <div className="mx-auto max-w-6xl">
+        <div className="rounded-[2rem] border border-zinc-200 bg-white p-7 shadow-sm sm:p-8">
+          <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
-              <p className="text-xs uppercase tracking-[0.35em] text-zinc-500">
-                editar portfólio
+              <p className="mb-3 text-xs uppercase tracking-[0.4em] text-zinc-500">
+                Editar convite
               </p>
-              <h1 className="mt-3 text-3xl font-semibold tracking-tight text-zinc-950 sm:text-4xl">
-                Ajustar página pública
+              <h1 className="text-4xl font-semibold tracking-tight text-zinc-950">
+                Atualizar informações
               </h1>
-              <p className="mt-3 max-w-2xl text-sm leading-6 text-zinc-600 sm:text-base">
-                Atualize foto, bio, links e projetos sem precisar recriar do zero.
-              </p>
             </div>
 
-            <div className="flex flex-wrap gap-3">
-              <Link
-                href={`/portfolio/${portfolio.slug}`}
-                className="inline-flex h-12 items-center justify-center rounded-2xl border border-zinc-300 px-5 text-sm font-medium text-zinc-900 transition hover:bg-zinc-50"
-              >
-                Ver página
-              </Link>
-              <Link
-                href="/dashboard"
-                className="inline-flex h-12 items-center justify-center rounded-2xl border border-zinc-300 px-5 text-sm font-medium text-zinc-900 transition hover:bg-zinc-50"
-              >
-                Voltar ao dashboard
-              </Link>
-            </div>
+            <Link
+              href="/dashboard"
+              className="rounded-full border border-zinc-300 bg-white px-6 py-3 text-sm font-medium text-zinc-900 transition hover:bg-zinc-50"
+            >
+              Voltar ao dashboard
+            </Link>
           </div>
-        </section>
+        </div>
 
         {error ? (
-          <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-            {error}
+          <div className="mt-6 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            Não foi possível salvar as alterações.
           </div>
         ) : null}
 
-        <form action={updatePortfolioAction} className="space-y-6">
-          <input type="hidden" name="id" value={portfolio.id} />
+        <form action={updateInviteWithId} className="mt-6 space-y-6">
+          <div className="grid gap-6 lg:grid-cols-2">
+            <section className="rounded-[2rem] border border-zinc-200 bg-white p-7 shadow-sm">
+              <h2 className="text-2xl font-semibold text-zinc-950">Informações principais</h2>
 
-          <section className="rounded-[28px] border border-zinc-200 bg-white p-6 shadow-sm sm:p-8">
-            <div className="grid gap-8 xl:grid-cols-[1.1fr_0.9fr]">
-              <div className="space-y-8">
+              <div className="mt-6">
+                <label className="text-sm font-medium text-zinc-900">Título do evento *</label>
+                <input
+                  name="title"
+                  defaultValue={invite.title}
+                  className={inputClassName()}
+                  required
+                />
+              </div>
+
+              <div className="mt-5">
+                <label className="text-sm font-medium text-zinc-900">Anfitrião / organizador</label>
+                <input
+                  name="host_name"
+                  defaultValue={invite.host_name ?? ""}
+                  className={inputClassName()}
+                />
+              </div>
+
+              <div className="mt-5">
+                <label className="text-sm font-medium text-zinc-900">Tipo de evento</label>
+                <input
+                  name="event_type"
+                  defaultValue={invite.event_type ?? ""}
+                  className={inputClassName()}
+                />
+              </div>
+
+              <div className="mt-5">
+                <label className="text-sm font-medium text-zinc-900">Descrição</label>
+                <textarea
+                  name="description"
+                  defaultValue={invite.description ?? ""}
+                  className={textareaClassName()}
+                />
+              </div>
+            </section>
+
+            <section className="rounded-[2rem] border border-zinc-200 bg-white p-7 shadow-sm">
+              <h2 className="text-2xl font-semibold text-zinc-950">Data e local</h2>
+
+              <div className="mt-6 grid gap-5 sm:grid-cols-2">
                 <div>
-                  <h2 className="text-lg font-semibold text-zinc-950">Identidade</h2>
-                  <p className="mt-1 text-sm text-zinc-600">
-                    Mantenha sua apresentação clara e fácil de bater o olho.
-                  </p>
-
-                  <div className="mt-5 grid gap-5 sm:grid-cols-2">
-                    <div className="sm:col-span-2">
-                      <FieldLabel>Nome completo *</FieldLabel>
-                      <input
-                        name="name"
-                        type="text"
-                        required
-                        defaultValue={portfolio.name ?? ""}
-                        className={inputClassName()}
-                        placeholder="Seu nome"
-                      />
-                    </div>
-
-                    <div className="sm:col-span-2">
-                      <FieldLabel>Título profissional</FieldLabel>
-                      <input
-                        name="title"
-                        type="text"
-                        defaultValue={portfolio.title ?? ""}
-                        className={inputClassName()}
-                        placeholder="Designer, desenvolvedor, social media..."
-                      />
-                    </div>
-
-                    <div className="sm:col-span-2">
-                      <FieldLabel>Bio</FieldLabel>
-                      <textarea
-                        name="bio"
-                        defaultValue={portfolio.bio ?? ""}
-                        className={textareaClassName()}
-                        placeholder="Descreva quem você é, no que trabalha e o que entrega."
-                      />
-                    </div>
-
-                    <div>
-                      <FieldLabel>Cidade</FieldLabel>
-                      <input
-                        name="city"
-                        type="text"
-                        defaultValue={portfolio.city ?? ""}
-                        className={inputClassName()}
-                        placeholder="Sua cidade"
-                      />
-                    </div>
-
-                    <div>
-                      <FieldLabel>Email</FieldLabel>
-                      <input
-                        name="email"
-                        type="email"
-                        defaultValue={portfolio.email ?? ""}
-                        className={inputClassName()}
-                        placeholder="voce@email.com"
-                      />
-                    </div>
-                  </div>
+                  <label className="text-sm font-medium text-zinc-900">Data</label>
+                  <input
+                    name="event_date"
+                    type="date"
+                    defaultValue={invite.event_date ?? ""}
+                    className={inputClassName()}
+                  />
                 </div>
 
                 <div>
-                  <h2 className="text-lg font-semibold text-zinc-950">Contato e links</h2>
-                  <p className="mt-1 text-sm text-zinc-600">
-                    Deixe só os botões que você realmente quer mostrar.
-                  </p>
-
-                  <div className="mt-5 grid gap-5 sm:grid-cols-2">
-                    <div>
-                      <FieldLabel>WhatsApp</FieldLabel>
-                      <input
-                        name="whatsapp"
-                        type="text"
-                        defaultValue={portfolio.whatsapp ?? ""}
-                        className={inputClassName()}
-                        placeholder="(64) 99999-9999"
-                      />
-                    </div>
-
-                    <div>
-                      <FieldLabel>LinkedIn</FieldLabel>
-                      <input
-                        name="linkedin"
-                        type="text"
-                        defaultValue={portfolio.linkedin ?? ""}
-                        className={inputClassName()}
-                        placeholder="linkedin.com/in/seu-link"
-                      />
-                    </div>
-
-                    <div>
-                      <FieldLabel>GitHub</FieldLabel>
-                      <input
-                        name="github"
-                        type="text"
-                        defaultValue={portfolio.github ?? ""}
-                        className={inputClassName()}
-                        placeholder="github.com/seuusuario"
-                      />
-                    </div>
-
-                    <div>
-                      <FieldLabel>Site</FieldLabel>
-                      <input
-                        name="website"
-                        type="text"
-                        defaultValue={portfolio.website ?? ""}
-                        className={inputClassName()}
-                        placeholder="seusite.com"
-                      />
-                    </div>
-                  </div>
+                  <label className="text-sm font-medium text-zinc-900">Hora</label>
+                  <input
+                    name="event_time"
+                    defaultValue={invite.event_time ?? ""}
+                    className={inputClassName()}
+                  />
                 </div>
               </div>
 
-              <div className="space-y-8">
-                <div>
-                  <h2 className="text-lg font-semibold text-zinc-950">Foto e conteúdo</h2>
-                  <p className="mt-1 text-sm text-zinc-600">
-                    Agora você pode enviar a imagem direto sem precisar hospedar em outro lugar.
-                  </p>
-
-                  <div className="mt-5 space-y-5">
-                    <PhotoUploadField
-                      name="photo_url"
-                      userName={portfolio.name}
-                      initialUrl={portfolio.photo_url}
-                    />
-
-                    <div>
-                      <FieldLabel>Projetos</FieldLabel>
-                      <textarea
-                        name="projects"
-                        defaultValue={portfolio.projects ?? ""}
-                        className={textareaClassName()}
-                        placeholder={"Um projeto por linha\nLanding page para X\nApp para Y\nLoja virtual para Z"}
-                      />
-                    </div>
-
-                    <div>
-                      <FieldLabel>Habilidades</FieldLabel>
-                      <textarea
-                        name="skills"
-                        defaultValue={portfolio.skills ?? ""}
-                        className={textareaClassName()}
-                        placeholder={"Uma habilidade por linha\nUI Design\nNext.js\nCopywriting"}
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </section>
-
-          <section className="rounded-[28px] border border-zinc-200 bg-white p-6 shadow-sm sm:p-8">
-            <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <h2 className="text-lg font-semibold text-zinc-950">Visibilidade pública</h2>
-                <p className="mt-1 text-sm text-zinc-600">
-                  Quando estiver ligado, qualquer pessoa com o link pode abrir sua página.
-                </p>
+              <div className="mt-5">
+                <label className="text-sm font-medium text-zinc-900">Nome do local</label>
+                <input
+                  name="location_name"
+                  defaultValue={invite.location_name ?? ""}
+                  className={inputClassName()}
+                />
               </div>
 
-              <label className="inline-flex items-center gap-3 text-sm font-medium text-zinc-900">
+              <div className="mt-5">
+                <label className="text-sm font-medium text-zinc-900">Endereço</label>
+                <input
+                  name="location_address"
+                  defaultValue={invite.location_address ?? ""}
+                  className={inputClassName()}
+                />
+              </div>
+
+              <div className="mt-5">
+                <label className="text-sm font-medium text-zinc-900">Link do mapa</label>
+                <input
+                  name="map_link"
+                  defaultValue={invite.map_link ?? ""}
+                  className={inputClassName()}
+                />
+              </div>
+            </section>
+          </div>
+
+          <div className="grid gap-6 lg:grid-cols-2">
+            <section className="rounded-[2rem] border border-zinc-200 bg-white p-7 shadow-sm">
+              <h2 className="text-2xl font-semibold text-zinc-950">Visual</h2>
+
+              <div className="mt-6">
+                <label className="text-sm font-medium text-zinc-900">Imagem de capa (URL)</label>
+                <input
+                  name="cover_image_url"
+                  defaultValue={invite.cover_image_url ?? ""}
+                  className={inputClassName()}
+                />
+              </div>
+
+              <div className="mt-5">
+                <label className="text-sm font-medium text-zinc-900">Tema</label>
+                <input
+                  name="theme"
+                  defaultValue={invite.theme ?? ""}
+                  className={inputClassName()}
+                />
+              </div>
+
+              <div className="mt-5">
+                <label className="text-sm font-medium text-zinc-900">Dress code</label>
+                <input
+                  name="dress_code"
+                  defaultValue={invite.dress_code ?? ""}
+                  className={inputClassName()}
+                />
+              </div>
+            </section>
+
+            <section className="rounded-[2rem] border border-zinc-200 bg-white p-7 shadow-sm">
+              <h2 className="text-2xl font-semibold text-zinc-950">Links extras</h2>
+
+              <div className="mt-6">
+                <label className="text-sm font-medium text-zinc-900">Link de confirmação (RSVP)</label>
+                <input
+                  name="rsvp_link"
+                  defaultValue={invite.rsvp_link ?? ""}
+                  className={inputClassName()}
+                />
+              </div>
+
+              <div className="mt-5">
+                <label className="text-sm font-medium text-zinc-900">Lista de presentes</label>
+                <input
+                  name="gift_link"
+                  defaultValue={invite.gift_link ?? ""}
+                  className={inputClassName()}
+                />
+              </div>
+
+              <label className="mt-6 flex items-center gap-3 rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-700">
                 <input
                   name="is_public"
                   type="checkbox"
-                  defaultChecked={portfolio.is_public ?? true}
-                  className="h-4 w-4 rounded border-zinc-300"
+                  className="size-4"
+                  defaultChecked={invite.is_public}
                 />
-                Deixar portfólio público
+                Deixar convite público por link
               </label>
-            </div>
+            </section>
+          </div>
 
-            <div className="mt-6 flex flex-wrap justify-end gap-3 border-t border-zinc-200 pt-6">
-              <Link
-                href="/dashboard"
-                className="inline-flex h-12 items-center justify-center rounded-2xl border border-zinc-300 px-5 text-sm font-medium text-zinc-900 transition hover:bg-zinc-50"
-              >
-                Cancelar
-              </Link>
+          <div className="flex flex-wrap justify-end gap-3">
+            <Link
+              href="/dashboard"
+              className="rounded-full border border-zinc-300 bg-white px-6 py-3 text-sm font-medium text-zinc-900 transition hover:bg-zinc-50"
+            >
+              Cancelar
+            </Link>
 
-              <button
-                type="submit"
-                className="inline-flex h-12 items-center justify-center rounded-2xl bg-zinc-950 px-5 text-sm font-medium text-white transition hover:bg-zinc-800"
-              >
-                Salvar alterações
-              </button>
-            </div>
-          </section>
+            <button
+              type="submit"
+              className="rounded-full bg-zinc-950 px-6 py-3 text-sm font-medium text-white transition hover:bg-zinc-800"
+            >
+              Salvar alterações
+            </button>
+          </div>
         </form>
       </div>
     </main>

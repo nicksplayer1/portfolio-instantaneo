@@ -1,189 +1,176 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import LogoutButton from "@/components/auth/logout-button";
+import { deleteInvite, duplicateInvite } from "./actions";
 import CopyLinkButton from "@/components/dashboard/copy-link-button";
-import DeletePortfolioButton from "@/components/dashboard/delete-portfolio-button";
-import { deletePortfolio, duplicatePortfolio } from "./actions";
-import { getInitials } from "@/lib/portfolio-utils";
+import LogoutButton from "@/components/auth/logout-button";
 
-type Props = {
-  searchParams?: Promise<{ error?: string; success?: string }>;
-};
+type SearchParams = Promise<{ success?: string }>;
 
-function formatDate(value: string) {
-  return new Date(value).toLocaleString("pt-BR", {
-    dateStyle: "short",
-    timeStyle: "short",
-  });
-}
-
-export default async function DashboardPage({ searchParams }: Props) {
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams?: SearchParams;
+}) {
   const supabase = await createClient();
-  const { data: authData, error: authError } = await supabase.auth.getUser();
+  const params = await searchParams;
 
-  if (authError || !authData.user) {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
     redirect("/login");
   }
 
-  const params = (await searchParams) ?? {};
-
-  const { data: portfolios } = await supabase
-    .from("portfolios")
-    .select("id, slug, name, title, photo_url, is_public, created_at, updated_at")
-    .eq("user_id", authData.user.id)
-    .order("updated_at", { ascending: false });
-
-  const appUrl = process.env.NEXT_PUBLIC_SITE_URL || "";
+  const { data: invites } = await supabase
+    .from("invites")
+    .select("*")
+    .eq("user_id", user.id)
+    .order("created_at", { ascending: false });
 
   return (
-    <main className="min-h-screen bg-zinc-50 px-4 py-8 sm:px-6 sm:py-10">
-      <div className="mx-auto max-w-6xl space-y-6">
-        <section className="rounded-[28px] border border-zinc-200 bg-white p-6 shadow-sm sm:p-8">
-          <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+    <main className="min-h-screen bg-[#f6f3ee] px-6 py-10">
+      <div className="mx-auto max-w-7xl">
+        <section className="rounded-[2rem] border border-zinc-200 bg-white p-7 shadow-sm sm:p-8">
+          <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
-              <p className="text-xs uppercase tracking-[0.35em] text-zinc-500">
+              <p className="mb-3 text-xs uppercase tracking-[0.4em] text-zinc-500">
                 Painel de controle
               </p>
-              <h1 className="mt-3 text-3xl font-semibold tracking-tight text-zinc-950 sm:text-4xl">
+              <h1 className="text-4xl font-semibold tracking-tight text-zinc-950">
                 Dashboard
               </h1>
-              <p className="mt-3 max-w-2xl text-sm leading-6 text-zinc-600 sm:text-base">
-                Gerencie seus portfólios, atualize sua foto, copie links e edite sua página quando quiser.
+              <p className="mt-3 max-w-3xl text-lg leading-8 text-zinc-600">
+                Gerencie seus convites, copie links, duplique versões e edite a página
+                sempre que quiser.
               </p>
             </div>
 
             <div className="flex flex-wrap gap-3">
               <Link
                 href="/create"
-                className="inline-flex h-12 items-center justify-center rounded-2xl bg-zinc-950 px-5 text-sm font-medium text-white transition hover:bg-zinc-800"
+                className="rounded-full bg-zinc-950 px-6 py-3 text-sm font-medium text-white transition hover:bg-zinc-800"
               >
-                Novo portfólio
+                Novo convite
               </Link>
               <LogoutButton />
             </div>
           </div>
 
           <div className="mt-6 rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-700">
-            Usuário autenticado: <span className="font-medium">{authData.user.email}</span>
+            Usuário autenticado: <span className="font-medium">{user.email}</span>
           </div>
-
-          {params.error ? (
-            <div className="mt-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-              {params.error}
-            </div>
-          ) : null}
-
-          {params.success ? (
-            <div className="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
-              {params.success}
-            </div>
-          ) : null}
         </section>
 
-        {!portfolios || portfolios.length === 0 ? (
-          <section className="rounded-[28px] border border-dashed border-zinc-300 bg-white p-10 text-center shadow-sm">
-            <p className="text-xs uppercase tracking-[0.35em] text-zinc-500">
-              Nenhum portfólio ainda
-            </p>
-            <h2 className="mt-4 text-2xl font-semibold text-zinc-950">
-              Crie sua primeira página agora
-            </h2>
-            <p className="mx-auto mt-3 max-w-xl text-sm leading-6 text-zinc-600 sm:text-base">
-              Monte uma apresentação bonita com bio, projetos, habilidades e links principais.
-            </p>
-            <Link
-              href="/create"
-              className="mt-6 inline-flex h-12 items-center justify-center rounded-2xl bg-zinc-950 px-6 text-sm font-medium text-white transition hover:bg-zinc-800"
-            >
-              Criar meu primeiro portfólio
-            </Link>
-          </section>
-        ) : (
-          <section className="space-y-4">
-            {portfolios.map((portfolio) => {
-              const publicUrl = appUrl
-                ? `${appUrl}/portfolio/${portfolio.slug}`
-                : `/portfolio/${portfolio.slug}`;
+        {params?.success ? (
+          <div className="mt-6 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+            Ação concluída com sucesso.
+          </div>
+        ) : null}
 
-              return (
-                <article
-                  key={portfolio.id}
-                  className="rounded-[28px] border border-zinc-200 bg-white p-6 shadow-sm"
-                >
-                  <div className="flex flex-col gap-5 xl:flex-row xl:items-center xl:justify-between">
-                    <div className="flex min-w-0 items-start gap-4">
-                      <div className="h-16 w-16 shrink-0 overflow-hidden rounded-2xl border border-zinc-200 bg-zinc-50">
-                        {portfolio.photo_url ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img
-                            src={portfolio.photo_url}
-                            alt={portfolio.name}
-                            className="h-full w-full object-cover"
-                          />
-                        ) : (
-                          <div className="flex h-full w-full items-center justify-center text-sm font-semibold text-zinc-400">
-                            {getInitials(portfolio.name)}
-                          </div>
-                        )}
-                      </div>
+        <section className="mt-6 space-y-4">
+          {!invites?.length ? (
+            <div className="rounded-[2rem] border border-dashed border-zinc-300 bg-white p-10 text-center shadow-sm">
+              <p className="text-xs uppercase tracking-[0.4em] text-zinc-500">
+                Nenhum convite ainda
+              </p>
+              <h2 className="mt-4 text-4xl font-semibold tracking-tight text-zinc-950">
+                Crie sua primeira página agora
+              </h2>
+              <p className="mx-auto mt-4 max-w-2xl text-lg leading-8 text-zinc-600">
+                Monte uma apresentação bonita com data, local, confirmação de presença
+                e links principais para compartilhar com seus convidados.
+              </p>
+              <Link
+                href="/create"
+                className="mt-8 inline-flex rounded-full bg-zinc-950 px-6 py-3 text-sm font-medium text-white transition hover:bg-zinc-800"
+              >
+                Criar meu primeiro convite
+              </Link>
+            </div>
+          ) : null}
 
-                      <div className="min-w-0">
-                        <div className="flex flex-wrap items-center gap-3">
-                          <h2 className="text-2xl font-semibold tracking-tight text-zinc-950 sm:text-3xl">
-                            {portfolio.name}
-                          </h2>
-                          <span className="rounded-full border border-zinc-200 bg-zinc-50 px-3 py-1 text-xs font-medium text-zinc-600">
-                            {portfolio.is_public ? "Público" : "Privado"}
-                          </span>
-                        </div>
+          {invites?.map((invite) => {
+            const publicUrl = `/invite/${invite.slug}`;
 
-                        <p className="mt-2 text-sm text-zinc-600 sm:text-base">
-                          {portfolio.title || "Sem título profissional"}
-                        </p>
-
-                        <div className="mt-4 flex flex-wrap gap-x-6 gap-y-2 text-sm text-zinc-500">
-                          <span>Criado em {formatDate(portfolio.created_at)}</span>
-                          <span>Atualizado em {formatDate(portfolio.updated_at)}</span>
-                        </div>
-                      </div>
+            return (
+              <article
+                key={invite.id}
+                className="rounded-[2rem] border border-zinc-200 bg-white p-6 shadow-sm"
+              >
+                <div className="flex flex-wrap items-start justify-between gap-5">
+                  <div>
+                    <div className="flex flex-wrap items-center gap-3">
+                      <h3 className="text-2xl font-semibold text-zinc-950">
+                        {invite.title}
+                      </h3>
+                      {invite.is_public ? (
+                        <span className="rounded-full border border-zinc-200 bg-zinc-50 px-3 py-1 text-xs font-medium text-zinc-600">
+                          Público
+                        </span>
+                      ) : null}
                     </div>
 
-                    <div className="flex flex-wrap gap-3 xl:justify-end">
-                      <Link
-                        href={`/portfolio/${portfolio.slug}`}
-                        className="inline-flex h-11 items-center justify-center rounded-2xl border border-zinc-300 px-4 text-sm font-medium text-zinc-900 transition hover:bg-zinc-50"
-                      >
-                        Ver portfólio
-                      </Link>
+                    {invite.event_type ? (
+                      <p className="mt-3 text-zinc-600">{invite.event_type}</p>
+                    ) : null}
 
-                      <Link
-                        href={`/edit/${portfolio.id}`}
-                        className="inline-flex h-11 items-center justify-center rounded-2xl border border-zinc-300 px-4 text-sm font-medium text-zinc-900 transition hover:bg-zinc-50"
-                      >
-                        Editar
-                      </Link>
-
-                      <CopyLinkButton url={publicUrl} />
-
-                      <form action={duplicatePortfolio}>
-                        <input type="hidden" name="id" value={portfolio.id} />
-                        <button
-                          type="submit"
-                          className="inline-flex h-11 items-center justify-center rounded-2xl border border-zinc-300 px-4 text-sm font-medium text-zinc-900 transition hover:bg-zinc-50"
-                        >
-                          Duplicar
-                        </button>
-                      </form>
-
-                      <DeletePortfolioButton action={deletePortfolio} id={portfolio.id} />
+                    <div className="mt-4 flex flex-wrap gap-4 text-sm text-zinc-500">
+                      <span>
+                        Criado em{" "}
+                        {new Date(invite.created_at).toLocaleDateString("pt-BR")}
+                      </span>
+                      <span>
+                        Atualizado em{" "}
+                        {new Date(invite.updated_at).toLocaleDateString("pt-BR")}
+                      </span>
                     </div>
                   </div>
-                </article>
-              );
-            })}
-          </section>
-        )}
+
+                  <div className="flex flex-wrap gap-2">
+                    <Link
+                      href={publicUrl}
+                      className="rounded-full border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-900 transition hover:bg-zinc-50"
+                    >
+                      Ver convite
+                    </Link>
+
+                    <Link
+                      href={`/edit/${invite.id}`}
+                      className="rounded-full border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-900 transition hover:bg-zinc-50"
+                    >
+                      Editar
+                    </Link>
+
+                    <CopyLinkButton url={publicUrl} />
+
+                    <form action={duplicateInvite}>
+                      <input type="hidden" name="id" value={invite.id} />
+                      <button
+                        type="submit"
+                        className="rounded-full border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-900 transition hover:bg-zinc-50"
+                      >
+                        Duplicar
+                      </button>
+                    </form>
+
+                    <form action={deleteInvite}>
+                      <input type="hidden" name="id" value={invite.id} />
+                      <button
+                        type="submit"
+                        className="rounded-full border border-red-200 bg-white px-4 py-2 text-sm font-medium text-red-600 transition hover:bg-red-50"
+                        onClick={undefined}
+                      >
+                        Excluir
+                      </button>
+                    </form>
+                  </div>
+                </div>
+              </article>
+            );
+          })}
+        </section>
       </div>
     </main>
   );

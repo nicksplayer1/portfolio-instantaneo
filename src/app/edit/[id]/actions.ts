@@ -3,85 +3,91 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { normalizeText, slugifyPortfolioName } from "@/lib/portfolio-utils";
+import { slugifyInviteTitle } from "@/lib/invite-utils";
 
-async function generateUniqueSlug(name: string, currentPortfolioId: string) {
+async function generateUniqueSlug(title: string, currentInviteId: string) {
   const supabase = await createClient();
-  const baseSlug = slugifyPortfolioName(name) || "portfolio";
-  let slug = baseSlug;
-  let counter = 1;
+  const baseSlug = slugifyInviteTitle(title);
+  const slug = baseSlug || "convite";
 
-  while (true) {
+  for (let i = 0; i < 50; i++) {
+    const candidate = i === 0 ? slug : `${slug}-${i + 1}`;
+
     const { data } = await supabase
-      .from("portfolios")
+      .from("invites")
       .select("id")
-      .eq("slug", slug)
-      .neq("id", currentPortfolioId)
+      .eq("slug", candidate)
+      .neq("id", currentInviteId)
       .maybeSingle();
 
-    if (!data) return slug;
-
-    counter += 1;
-    slug = `${baseSlug}-${counter}`;
+    if (!data) return candidate;
   }
+
+  return `${slug}-${Date.now()}`;
 }
 
-export async function updatePortfolioAction(formData: FormData) {
+export async function updateInvite(inviteId: string, formData: FormData) {
   const supabase = await createClient();
-  const { data: authData, error: authError } = await supabase.auth.getUser();
 
-  if (authError || !authData.user) {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
     redirect("/login");
   }
 
-  const id = normalizeText(formData.get("id"));
-  const name = normalizeText(formData.get("name"));
-  const title = normalizeText(formData.get("title"));
-  const bio = normalizeText(formData.get("bio"));
-  const city = normalizeText(formData.get("city"));
-  const email = normalizeText(formData.get("email"));
-  const whatsapp = normalizeText(formData.get("whatsapp"));
-  const linkedin = normalizeText(formData.get("linkedin"));
-  const github = normalizeText(formData.get("github"));
-  const website = normalizeText(formData.get("website"));
-  const photoUrl = normalizeText(formData.get("photo_url"));
-  const projects = normalizeText(formData.get("projects"));
-  const skills = normalizeText(formData.get("skills"));
-  const isPublic = formData.get("is_public") === "on";
+  const title = String(formData.get("title") ?? "").trim();
+  const host_name = String(formData.get("host_name") ?? "").trim();
+  const event_type = String(formData.get("event_type") ?? "").trim();
+  const description = String(formData.get("description") ?? "").trim();
+  const event_date = String(formData.get("event_date") ?? "").trim();
+  const event_time = String(formData.get("event_time") ?? "").trim();
+  const location_name = String(formData.get("location_name") ?? "").trim();
+  const location_address = String(formData.get("location_address") ?? "").trim();
+  const map_link = String(formData.get("map_link") ?? "").trim();
+  const cover_image_url = String(formData.get("cover_image_url") ?? "").trim();
+  const theme = String(formData.get("theme") ?? "").trim();
+  const rsvp_link = String(formData.get("rsvp_link") ?? "").trim();
+  const gift_link = String(formData.get("gift_link") ?? "").trim();
+  const dress_code = String(formData.get("dress_code") ?? "").trim();
+  const is_public = formData.get("is_public") === "on";
 
-  if (!id || !name) {
-    redirect("/dashboard?error=Preencha pelo menos o nome.");
+  if (!title) {
+    redirect(`/edit/${inviteId}?error=missing-title`);
   }
 
-  const slug = await generateUniqueSlug(name, id);
+  const slug = await generateUniqueSlug(title, inviteId);
 
   const { error } = await supabase
-    .from("portfolios")
+    .from("invites")
     .update({
       slug,
-      name,
-      title: title || null,
-      bio: bio || null,
-      city: city || null,
-      email: email || null,
-      whatsapp: whatsapp || null,
-      linkedin: linkedin || null,
-      github: github || null,
-      website: website || null,
-      photo_url: photoUrl || null,
-      projects: projects || null,
-      skills: skills || null,
-      is_public: isPublic,
+      title,
+      host_name: host_name || null,
+      event_type: event_type || null,
+      description: description || null,
+      event_date: event_date || null,
+      event_time: event_time || null,
+      location_name: location_name || null,
+      location_address: location_address || null,
+      map_link: map_link || null,
+      cover_image_url: cover_image_url || null,
+      theme: theme || null,
+      rsvp_link: rsvp_link || null,
+      gift_link: gift_link || null,
+      dress_code: dress_code || null,
+      is_public,
       updated_at: new Date().toISOString(),
     })
-    .eq("id", id)
-    .eq("user_id", authData.user.id);
+    .eq("id", inviteId)
+    .eq("user_id", user.id);
 
   if (error) {
-    redirect(`/edit/${id}?error=${encodeURIComponent("Não foi possível salvar as alterações.")}`);
+    redirect(`/edit/${inviteId}?error=update-failed`);
   }
 
   revalidatePath("/dashboard");
-  revalidatePath(`/portfolio/${slug}`);
-  redirect(`/portfolio/${slug}`);
+  revalidatePath(`/invite/${slug}`);
+  redirect(`/invite/${slug}`);
 }
