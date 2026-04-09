@@ -1,18 +1,36 @@
+import type { ReactNode } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import {
+  ensureUrl,
+  formatWebsiteLabel,
+  getInitials,
+  normalizeWhatsapp,
+  splitLines,
+} from "@/lib/portfolio-utils";
 import CopyLinkButton from "@/components/dashboard/copy-link-button";
-import { ensureUrl, splitLines } from "@/lib/portfolio-utils";
 
 type Props = {
   params: Promise<{ slug: string }>;
 };
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
+function Section({
+  eyebrow,
+  title,
+  children,
+}: {
+  eyebrow?: string;
+  title: string;
+  children: ReactNode;
+}) {
   return (
     <section className="border-t border-zinc-200 px-6 py-8 sm:px-10 sm:py-10">
-      <h2 className="text-2xl font-semibold tracking-tight text-zinc-950">{title}</h2>
-      <div className="mt-5">{children}</div>
+      {eyebrow ? (
+        <p className="text-xs uppercase tracking-[0.35em] text-zinc-500">{eyebrow}</p>
+      ) : null}
+      <h2 className="mt-2 text-2xl font-semibold tracking-tight text-zinc-950">{title}</h2>
+      <div className="mt-6">{children}</div>
     </section>
   );
 }
@@ -46,23 +64,27 @@ export default async function PortfolioPublicPage({ params }: Props) {
 
   const projects = splitLines(portfolio.projects);
   const skills = splitLines(portfolio.skills);
-  const currentUrl = `${process.env.NEXT_PUBLIC_SITE_URL || ""}/portfolio/${portfolio.slug}`;
+  const currentUrl = process.env.NEXT_PUBLIC_SITE_URL
+    ? `${process.env.NEXT_PUBLIC_SITE_URL}/portfolio/${portfolio.slug}`
+    : `/portfolio/${portfolio.slug}`;
+
+  const whatsappHref = normalizeWhatsapp(portfolio.whatsapp)
+    ? `https://wa.me/${normalizeWhatsapp(portfolio.whatsapp)}`
+    : "";
 
   const socialItems = [
     portfolio.linkedin ? { label: "LinkedIn", href: ensureUrl(portfolio.linkedin) } : null,
     portfolio.github ? { label: "GitHub", href: ensureUrl(portfolio.github) } : null,
     portfolio.website ? { label: "Site", href: ensureUrl(portfolio.website) } : null,
     portfolio.email ? { label: "Email", href: `mailto:${portfolio.email}` } : null,
-    portfolio.whatsapp
-      ? { label: "WhatsApp", href: `https://wa.me/${portfolio.whatsapp.replace(/\D/g, "")}` }
-      : null,
+    whatsappHref ? { label: "WhatsApp", href: whatsappHref } : null,
   ].filter(Boolean) as Array<{ label: string; href: string }>;
 
   return (
-    <main className="min-h-screen bg-zinc-50 px-4 py-8 sm:px-6 sm:py-10 print:bg-white print:px-0 print:py-0">
-      <div className="mx-auto max-w-6xl overflow-hidden rounded-[32px] border border-zinc-200 bg-white shadow-sm print:max-w-full print:rounded-none print:border-0 print:shadow-none">
-        <section className="px-6 py-8 sm:px-10 sm:py-10 print:px-8 print:py-8">
-          <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between print:hidden">
+    <main className="min-h-screen bg-zinc-50 px-4 py-8 sm:px-6 sm:py-10">
+      <div className="mx-auto max-w-6xl overflow-hidden rounded-[32px] border border-zinc-200 bg-white shadow-sm">
+        <section className="px-6 py-8 sm:px-10 sm:py-10">
+          <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
             <div>
               <p className="text-xs uppercase tracking-[0.35em] text-zinc-500">
                 Portfólio público
@@ -83,38 +105,13 @@ export default async function PortfolioPublicPage({ params }: Props) {
             </div>
           </div>
 
-          <div className="mt-2 grid gap-8 lg:grid-cols-[1.2fr_0.8fr] print:mt-0 print:grid-cols-[1.25fr_0.75fr]">
+          <div className="mt-8 grid gap-8 lg:grid-cols-[1.15fr_0.85fr]">
             <div>
               <p className="text-xs uppercase tracking-[0.35em] text-zinc-500">
                 Portfólio instantâneo
               </p>
-              <h2 className="mt-4 text-4xl font-semibold leading-[0.95] tracking-tight text-zinc-950 sm:text-6xl print:text-4xl">
-                {portfolio.name}
-              </h2>
-              {portfolio.title ? (
-                <p className="mt-5 text-lg text-zinc-600 sm:text-2xl print:text-lg">
-                  {portfolio.title}
-                </p>
-              ) : null}
-
-              {portfolio.bio ? (
-                <p className="mt-6 max-w-3xl text-sm leading-7 text-zinc-700 sm:text-base print:max-w-none print:text-sm print:leading-6">
-                  {portfolio.bio}
-                </p>
-              ) : null}
-
-              {socialItems.length > 0 ? (
-                <div className="mt-8 flex flex-wrap gap-3 print:hidden">
-                  {socialItems.map((item) => (
-                    <SocialLink key={item.label} href={item.href} label={item.label} />
-                  ))}
-                </div>
-              ) : null}
-            </div>
-
-            <div className="rounded-[28px] border border-zinc-200 bg-zinc-50 p-5 print:rounded-[20px] print:bg-white">
-              <div className="flex items-start gap-4">
-                <div className="h-20 w-20 shrink-0 overflow-hidden rounded-2xl border border-zinc-200 bg-white print:h-16 print:w-16">
+              <div className="mt-5 flex items-start gap-5">
+                <div className="h-24 w-24 shrink-0 overflow-hidden rounded-[28px] border border-zinc-200 bg-zinc-50 sm:h-28 sm:w-28">
                   {portfolio.photo_url ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
@@ -123,42 +120,101 @@ export default async function PortfolioPublicPage({ params }: Props) {
                       className="h-full w-full object-cover"
                     />
                   ) : (
-                    <div className="flex h-full w-full items-center justify-center text-xs uppercase tracking-[0.25em] text-zinc-400">
-                      Foto
+                    <div className="flex h-full w-full items-center justify-center text-2xl font-semibold text-zinc-400">
+                      {getInitials(portfolio.name)}
                     </div>
                   )}
                 </div>
 
-                <div>
-                  <p className="text-xs uppercase tracking-[0.35em] text-zinc-500">
-                    Contato
-                  </p>
-                  <div className="mt-3 space-y-2 text-sm text-zinc-700">
-                    {portfolio.email ? <p><span className="font-medium text-zinc-950">Email:</span> {portfolio.email}</p> : null}
-                    {portfolio.whatsapp ? <p><span className="font-medium text-zinc-950">WhatsApp:</span> {portfolio.whatsapp}</p> : null}
-                    {portfolio.city ? <p><span className="font-medium text-zinc-950">Cidade:</span> {portfolio.city}</p> : null}
-                    {portfolio.website ? (
-                      <p>
-                        <span className="font-medium text-zinc-950">Site:</span>{" "}
-                        <a
-                          href={ensureUrl(portfolio.website)}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="underline underline-offset-4"
-                        >
-                          {portfolio.website}
-                        </a>
-                      </p>
-                    ) : null}
-                  </div>
+                <div className="min-w-0">
+                  <h2 className="text-4xl font-semibold leading-[0.95] tracking-tight text-zinc-950 sm:text-6xl">
+                    {portfolio.name}
+                  </h2>
+                  {portfolio.title ? (
+                    <p className="mt-4 text-lg text-zinc-600 sm:text-2xl">{portfolio.title}</p>
+                  ) : null}
                 </div>
+              </div>
+
+              {portfolio.bio ? (
+                <p className="mt-7 max-w-3xl text-sm leading-7 text-zinc-700 sm:text-base">
+                  {portfolio.bio}
+                </p>
+              ) : null}
+
+              {socialItems.length > 0 ? (
+                <div className="mt-8 flex flex-wrap gap-3">
+                  {socialItems.map((item) => (
+                    <SocialLink key={item.label} href={item.href} label={item.label} />
+                  ))}
+                </div>
+              ) : null}
+            </div>
+
+            <div className="rounded-[28px] border border-zinc-200 bg-zinc-50 p-6">
+              <p className="text-xs uppercase tracking-[0.35em] text-zinc-500">Contato</p>
+              <div className="mt-4 space-y-3 text-sm text-zinc-700">
+                {portfolio.email ? (
+                  <p>
+                    <span className="font-medium text-zinc-950">Email:</span> {portfolio.email}
+                  </p>
+                ) : null}
+                {portfolio.whatsapp ? (
+                  <p>
+                    <span className="font-medium text-zinc-950">WhatsApp:</span> {portfolio.whatsapp}
+                  </p>
+                ) : null}
+                {portfolio.city ? (
+                  <p>
+                    <span className="font-medium text-zinc-950">Cidade:</span> {portfolio.city}
+                  </p>
+                ) : null}
+                {portfolio.linkedin ? (
+                  <p>
+                    <span className="font-medium text-zinc-950">LinkedIn:</span>{" "}
+                    <a
+                      href={ensureUrl(portfolio.linkedin)}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="underline underline-offset-4"
+                    >
+                      {formatWebsiteLabel(portfolio.linkedin)}
+                    </a>
+                  </p>
+                ) : null}
+                {portfolio.github ? (
+                  <p>
+                    <span className="font-medium text-zinc-950">GitHub:</span>{" "}
+                    <a
+                      href={ensureUrl(portfolio.github)}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="underline underline-offset-4"
+                    >
+                      {formatWebsiteLabel(portfolio.github)}
+                    </a>
+                  </p>
+                ) : null}
+                {portfolio.website ? (
+                  <p>
+                    <span className="font-medium text-zinc-950">Site:</span>{" "}
+                    <a
+                      href={ensureUrl(portfolio.website)}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="underline underline-offset-4"
+                    >
+                      {formatWebsiteLabel(portfolio.website)}
+                    </a>
+                  </p>
+                ) : null}
               </div>
             </div>
           </div>
         </section>
 
         {projects.length > 0 ? (
-          <Section title="Projetos em destaque">
+          <Section eyebrow="vitrine" title="Projetos em destaque">
             <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
               {projects.map((project, index) => (
                 <div
@@ -176,7 +232,7 @@ export default async function PortfolioPublicPage({ params }: Props) {
         ) : null}
 
         {skills.length > 0 ? (
-          <Section title="Habilidades">
+          <Section eyebrow="especialidades" title="Habilidades">
             <div className="flex flex-wrap gap-3">
               {skills.map((skill) => (
                 <span

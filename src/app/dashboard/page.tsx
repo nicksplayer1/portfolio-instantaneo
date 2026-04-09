@@ -1,10 +1,11 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import LogoutButton from "@/components/auth/logout-button";
 import CopyLinkButton from "@/components/dashboard/copy-link-button";
 import DeletePortfolioButton from "@/components/dashboard/delete-portfolio-button";
 import { deletePortfolio, duplicatePortfolio } from "./actions";
-import LogoutButton from "@/components/auth/logout-button";
+import { getInitials } from "@/lib/portfolio-utils";
 
 type Props = {
   searchParams?: Promise<{ error?: string; success?: string }>;
@@ -29,7 +30,7 @@ export default async function DashboardPage({ searchParams }: Props) {
 
   const { data: portfolios } = await supabase
     .from("portfolios")
-    .select("id, slug, name, title, is_public, created_at, updated_at")
+    .select("id, slug, name, title, photo_url, is_public, created_at, updated_at")
     .eq("user_id", authData.user.id)
     .order("updated_at", { ascending: false });
 
@@ -48,8 +49,7 @@ export default async function DashboardPage({ searchParams }: Props) {
                 Dashboard
               </h1>
               <p className="mt-3 max-w-2xl text-sm leading-6 text-zinc-600 sm:text-base">
-                Gerencie seus portfólios, copie links, duplique versões e edite
-                sua página sempre que quiser.
+                Gerencie seus portfólios, atualize sua foto, copie links e edite sua página quando quiser.
               </p>
             </div>
 
@@ -90,8 +90,7 @@ export default async function DashboardPage({ searchParams }: Props) {
               Crie sua primeira página agora
             </h2>
             <p className="mx-auto mt-3 max-w-xl text-sm leading-6 text-zinc-600 sm:text-base">
-              Monte uma apresentação bonita com bio, projetos, habilidades e
-              links principais para compartilhar com clientes ou recrutadores.
+              Monte uma apresentação bonita com bio, projetos, habilidades e links principais.
             </p>
             <Link
               href="/create"
@@ -112,24 +111,41 @@ export default async function DashboardPage({ searchParams }: Props) {
                   key={portfolio.id}
                   className="rounded-[28px] border border-zinc-200 bg-white p-6 shadow-sm"
                 >
-                  <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
-                    <div className="min-w-0">
-                      <div className="flex flex-wrap items-center gap-3">
-                        <h2 className="text-2xl font-semibold tracking-tight text-zinc-950 sm:text-3xl">
-                          {portfolio.name}
-                        </h2>
-                        <span className="rounded-full border border-zinc-200 bg-zinc-50 px-3 py-1 text-xs font-medium text-zinc-600">
-                          {portfolio.is_public ? "Público" : "Privado"}
-                        </span>
+                  <div className="flex flex-col gap-5 xl:flex-row xl:items-center xl:justify-between">
+                    <div className="flex min-w-0 items-start gap-4">
+                      <div className="h-16 w-16 shrink-0 overflow-hidden rounded-2xl border border-zinc-200 bg-zinc-50">
+                        {portfolio.photo_url ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={portfolio.photo_url}
+                            alt={portfolio.name}
+                            className="h-full w-full object-cover"
+                          />
+                        ) : (
+                          <div className="flex h-full w-full items-center justify-center text-sm font-semibold text-zinc-400">
+                            {getInitials(portfolio.name)}
+                          </div>
+                        )}
                       </div>
 
-                      <p className="mt-3 text-sm text-zinc-600 sm:text-base">
-                        {portfolio.title || "Sem título profissional"}
-                      </p>
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-3">
+                          <h2 className="text-2xl font-semibold tracking-tight text-zinc-950 sm:text-3xl">
+                            {portfolio.name}
+                          </h2>
+                          <span className="rounded-full border border-zinc-200 bg-zinc-50 px-3 py-1 text-xs font-medium text-zinc-600">
+                            {portfolio.is_public ? "Público" : "Privado"}
+                          </span>
+                        </div>
 
-                      <div className="mt-5 flex flex-wrap gap-x-6 gap-y-2 text-sm text-zinc-500">
-                        <span>Criado em {formatDate(portfolio.created_at)}</span>
-                        <span>Atualizado em {formatDate(portfolio.updated_at)}</span>
+                        <p className="mt-2 text-sm text-zinc-600 sm:text-base">
+                          {portfolio.title || "Sem título profissional"}
+                        </p>
+
+                        <div className="mt-4 flex flex-wrap gap-x-6 gap-y-2 text-sm text-zinc-500">
+                          <span>Criado em {formatDate(portfolio.created_at)}</span>
+                          <span>Atualizado em {formatDate(portfolio.updated_at)}</span>
+                        </div>
                       </div>
                     </div>
 

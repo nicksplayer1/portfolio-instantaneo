@@ -1,13 +1,15 @@
+import type { ReactNode } from "react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import PhotoUploadField from "@/components/portfolio/photo-upload-field";
 import { createPortfolio } from "./actions";
 
 type Props = {
   searchParams?: Promise<{ error?: string }>;
 };
 
-function FieldLabel({ children }: { children: React.ReactNode }) {
+function FieldLabel({ children }: { children: ReactNode }) {
   return (
     <label className="mb-2 block text-sm font-medium text-zinc-800">
       {children}
@@ -45,7 +47,7 @@ export default async function CreatePage({ searchParams }: Props) {
 
   return (
     <main className="min-h-screen bg-zinc-50 px-4 py-8 sm:px-6 sm:py-10">
-      <div className="mx-auto max-w-5xl">
+      <div className="mx-auto max-w-6xl">
         <div className="mb-6 flex flex-col gap-4 rounded-[28px] border border-zinc-200 bg-white p-6 shadow-sm sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="text-xs uppercase tracking-[0.35em] text-zinc-500">
@@ -55,8 +57,8 @@ export default async function CreatePage({ searchParams }: Props) {
               Criar novo portfólio
             </h1>
             <p className="mt-3 max-w-2xl text-sm leading-6 text-zinc-600 sm:text-base">
-              Monte uma página pessoal bonita para compartilhar seus projetos,
-              links, bio e habilidades em poucos minutos.
+              Monte uma página pessoal mais bonita, com foto, links principais,
+              habilidades e projetos em poucos minutos.
             </p>
           </div>
 
@@ -68,159 +70,153 @@ export default async function CreatePage({ searchParams }: Props) {
           </Link>
         </div>
 
-        <form action={createPortfolio} className="rounded-[28px] border border-zinc-200 bg-white p-6 shadow-sm sm:p-8">
+        <form action={createPortfolio} className="space-y-6">
           {params.error ? (
-            <div className="mb-6 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
               {params.error}
             </div>
           ) : null}
 
-          <div className="grid gap-8 lg:grid-cols-[1.2fr_0.8fr]">
-            <div className="space-y-8">
-              <section>
-                <h2 className="text-lg font-semibold text-zinc-950">Identidade</h2>
-                <p className="mt-1 text-sm text-zinc-600">
-                  Essas informações aparecem no topo da sua página pública.
-                </p>
+          <section className="rounded-[28px] border border-zinc-200 bg-white p-6 shadow-sm sm:p-8">
+            <div className="grid gap-8 xl:grid-cols-[1.1fr_0.9fr]">
+              <div className="space-y-8">
+                <div>
+                  <h2 className="text-lg font-semibold text-zinc-950">Identidade</h2>
+                  <p className="mt-1 text-sm text-zinc-600">
+                    Esses dados aparecem logo no topo da sua página pública.
+                  </p>
 
-                <div className="mt-5 grid gap-5 sm:grid-cols-2">
-                  <div className="sm:col-span-2">
-                    <FieldLabel>Nome completo *</FieldLabel>
-                    <Input name="name" placeholder="Ex.: Ana Souza" required />
-                  </div>
+                  <div className="mt-5 grid gap-5 sm:grid-cols-2">
+                    <div className="sm:col-span-2">
+                      <FieldLabel>Nome completo *</FieldLabel>
+                      <Input name="name" placeholder="Ex.: Ana Souza" required />
+                    </div>
 
-                  <div className="sm:col-span-2">
-                    <FieldLabel>Título profissional</FieldLabel>
-                    <Input
-                      name="title"
-                      placeholder="Ex.: Designer de Produto, Desenvolvedor Front-end"
-                    />
-                  </div>
+                    <div className="sm:col-span-2">
+                      <FieldLabel>Título profissional</FieldLabel>
+                      <Input
+                        name="title"
+                        placeholder="Ex.: Designer de Produto, Desenvolvedor Front-end"
+                      />
+                    </div>
 
-                  <div className="sm:col-span-2">
-                    <FieldLabel>Bio</FieldLabel>
-                    <Textarea
-                      name="bio"
-                      placeholder="Escreva uma apresentação curta sobre você, sua especialidade e o tipo de projeto que desenvolve."
-                    />
-                  </div>
+                    <div className="sm:col-span-2">
+                      <FieldLabel>Bio</FieldLabel>
+                      <Textarea
+                        name="bio"
+                        placeholder="Escreva uma apresentação curta sobre você, sua especialidade e o tipo de projeto que desenvolve."
+                      />
+                    </div>
 
-                  <div>
-                    <FieldLabel>Cidade</FieldLabel>
-                    <Input name="city" placeholder="Ex.: São Paulo, SP" />
-                  </div>
+                    <div>
+                      <FieldLabel>Cidade</FieldLabel>
+                      <Input name="city" placeholder="Ex.: São Paulo, SP" />
+                    </div>
 
-                  <div>
-                    <FieldLabel>Foto (URL)</FieldLabel>
-                    <Input
-                      name="photo_url"
-                      placeholder="https://seusite.com/foto.jpg"
-                    />
-                  </div>
-                </div>
-              </section>
-
-              <section>
-                <h2 className="text-lg font-semibold text-zinc-950">Contato e links</h2>
-                <p className="mt-1 text-sm text-zinc-600">
-                  Coloque apenas os canais que quer exibir.
-                </p>
-
-                <div className="mt-5 grid gap-5 sm:grid-cols-2">
-                  <div>
-                    <FieldLabel>Email</FieldLabel>
-                    <Input name="email" type="email" placeholder="voce@email.com" />
-                  </div>
-
-                  <div>
-                    <FieldLabel>WhatsApp</FieldLabel>
-                    <Input name="whatsapp" placeholder="Ex.: 64992606140" />
-                  </div>
-
-                  <div>
-                    <FieldLabel>LinkedIn</FieldLabel>
-                    <Input name="linkedin" placeholder="linkedin.com/in/seu-link" />
-                  </div>
-
-                  <div>
-                    <FieldLabel>GitHub</FieldLabel>
-                    <Input name="github" placeholder="github.com/seu-usuario" />
-                  </div>
-
-                  <div className="sm:col-span-2">
-                    <FieldLabel>Site / portfólio externo</FieldLabel>
-                    <Input name="website" placeholder="seusite.com" />
+                    <div>
+                      <FieldLabel>Email</FieldLabel>
+                      <Input name="email" type="email" placeholder="voce@email.com" />
+                    </div>
                   </div>
                 </div>
-              </section>
+
+                <div>
+                  <h2 className="text-lg font-semibold text-zinc-950">Contato e links</h2>
+                  <p className="mt-1 text-sm text-zinc-600">
+                    Coloque só os canais que vale a pena exibir.
+                  </p>
+
+                  <div className="mt-5 grid gap-5 sm:grid-cols-2">
+                    <div>
+                      <FieldLabel>WhatsApp</FieldLabel>
+                      <Input name="whatsapp" placeholder="Ex.: 64992606140" />
+                    </div>
+
+                    <div>
+                      <FieldLabel>LinkedIn</FieldLabel>
+                      <Input name="linkedin" placeholder="linkedin.com/in/seu-link" />
+                    </div>
+
+                    <div>
+                      <FieldLabel>GitHub</FieldLabel>
+                      <Input name="github" placeholder="github.com/seu-usuario" />
+                    </div>
+
+                    <div>
+                      <FieldLabel>Site / portfólio externo</FieldLabel>
+                      <Input name="website" placeholder="seusite.com" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-8">
+                <div>
+                  <h2 className="text-lg font-semibold text-zinc-950">Foto e conteúdo</h2>
+                  <p className="mt-1 text-sm text-zinc-600">
+                    O jeito mais fácil é enviar a imagem e depois preencher seus destaques.
+                  </p>
+
+                  <div className="mt-5 space-y-5">
+                    <PhotoUploadField name="photo_url" userName={data.user.email ?? undefined} />
+
+                    <div>
+                      <FieldLabel>Projetos</FieldLabel>
+                      <Textarea
+                        name="projects"
+                        placeholder={"Landing page para clínica\nDashboard de analytics\nLoja virtual com checkout"}
+                      />
+                    </div>
+
+                    <div>
+                      <FieldLabel>Habilidades</FieldLabel>
+                      <Textarea
+                        name="skills"
+                        placeholder={"UI Design\nUX Research\nReact\nNext.js"}
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section className="rounded-[28px] border border-zinc-200 bg-white p-6 shadow-sm sm:p-8">
+            <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h2 className="text-lg font-semibold text-zinc-950">Visibilidade pública</h2>
+                <p className="mt-1 text-sm text-zinc-600">
+                  Deixe ligado para sua página abrir normalmente pelo link.
+                </p>
+              </div>
+
+              <label className="inline-flex items-center gap-3 text-sm font-medium text-zinc-900">
+                <input
+                  name="is_public"
+                  type="checkbox"
+                  defaultChecked
+                  className="h-4 w-4 rounded border-zinc-300"
+                />
+                Deixar portfólio público
+              </label>
             </div>
 
-            <div className="space-y-8">
-              <section>
-                <h2 className="text-lg font-semibold text-zinc-950">Conteúdo</h2>
-                <p className="mt-1 text-sm text-zinc-600">
-                  Separe projetos e habilidades por linha para ficar mais bonito.
-                </p>
+            <div className="mt-6 flex flex-wrap justify-end gap-3 border-t border-zinc-200 pt-6">
+              <Link
+                href="/dashboard"
+                className="inline-flex h-12 items-center justify-center rounded-2xl border border-zinc-300 px-5 text-sm font-medium text-zinc-900 transition hover:bg-zinc-50"
+              >
+                Cancelar
+              </Link>
 
-                <div className="mt-5 space-y-5">
-                  <div>
-                    <FieldLabel>Projetos</FieldLabel>
-                    <Textarea
-                      name="projects"
-                      placeholder={"Landing page para clínica\nDashboard de analytics\nLoja virtual com checkout"}
-                    />
-                  </div>
-
-                  <div>
-                    <FieldLabel>Habilidades</FieldLabel>
-                    <Textarea
-                      name="skills"
-                      placeholder={"UI Design\nUX Research\nReact\nNext.js"}
-                    />
-                  </div>
-                </div>
-              </section>
-
-              <section className="rounded-[24px] border border-zinc-200 bg-zinc-50 p-5">
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <h3 className="text-base font-semibold text-zinc-950">
-                      Visibilidade pública
-                    </h3>
-                    <p className="mt-1 text-sm leading-6 text-zinc-600">
-                      Deixe ligado para que sua página possa ser aberta pelo link.
-                    </p>
-                  </div>
-
-                  <label className="inline-flex items-center gap-3 text-sm font-medium text-zinc-800">
-                    <input
-                      type="checkbox"
-                      name="is_public"
-                      defaultChecked
-                      className="h-4 w-4 rounded border-zinc-300"
-                    />
-                    Público
-                  </label>
-                </div>
-              </section>
+              <button
+                type="submit"
+                className="inline-flex h-12 items-center justify-center rounded-2xl bg-zinc-950 px-5 text-sm font-medium text-white transition hover:bg-zinc-800"
+              >
+                Criar portfólio
+              </button>
             </div>
-          </div>
-
-          <div className="mt-8 flex flex-col-reverse gap-3 border-t border-zinc-200 pt-6 sm:flex-row sm:justify-end">
-            <Link
-              href="/dashboard"
-              className="inline-flex h-12 items-center justify-center rounded-2xl border border-zinc-300 px-5 text-sm font-medium text-zinc-900 transition hover:bg-zinc-50"
-            >
-              Cancelar
-            </Link>
-
-            <button
-              type="submit"
-              className="inline-flex h-12 items-center justify-center rounded-2xl bg-zinc-950 px-6 text-sm font-medium text-white transition hover:bg-zinc-800"
-            >
-              Criar portfólio
-            </button>
-          </div>
+          </section>
         </form>
       </div>
     </main>
